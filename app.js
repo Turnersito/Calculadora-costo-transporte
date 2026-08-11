@@ -197,6 +197,24 @@ function setupEventListeners() {
     handleCalculateTrip();
   });
 
+  // Vehicle profile dropdown change -> Sync efficiency input automatically
+  elements.selectVehicle?.addEventListener('change', (e) => {
+    const selectedId = e.target.value;
+    const vehicles = getSavedVehicles();
+    const found = vehicles.find(v => v.id === selectedId);
+    if (found) {
+      state.selectedVehicle = found;
+      if (elements.inputEfficiency) elements.inputEfficiency.value = found.efficiency;
+      if (elements.selectUnit) elements.selectUnit.value = found.unit;
+      if (elements.selectFuelType) {
+        elements.selectFuelType.value = found.fuelType || '95';
+        updatePriceInputForSelectedFuel();
+      }
+      updateActiveVehicleAvatarUI(found);
+      showToast(`Rendimiento cargado: ${found.efficiency} ${found.unit === 'kml' ? 'km/L' : 'L/100km'} (${found.name})`, 'info');
+    }
+  });
+
   // Fuel type change
   elements.selectFuelType?.addEventListener('change', () => {
     updatePriceInputForSelectedFuel();
