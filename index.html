@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Costo de Recorridos | Chile</title>
+  <meta name="description" content="Calcula el costo estimado de combustible y peajes para tu viaje en vehículo en Chile. Distancia real, rendimiento y precio de la bencina en tiempo real.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/map.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Header / Navbar -->
+    <header class="app-header">
+      <div class="header-content">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+          </div>
+          <div class="brand-text">
+            <h1>RutaCost<span>.cl</span></h1>
+            <p>Calculadora de Combustible & Peajes Chile</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button id="btnManageVehicles" class="btn btn-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+            Mis Vehículos (<span id="vehicleCountBadge">1</span>)
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Layout -->
+    <main class="main-content">
+      <!-- Left Panel: Form & Results -->
+      <section class="panel panel-left">
+        
+        <!-- Form Section -->
+        <div class="card form-card">
+          <div class="card-header">
+            <h2>Planificar Viaje</h2>
+            <div class="active-vehicle-preview" title="Vehículo activo">
+              <div id="activeVehicleAvatar" class="avatar-sm">
+                <!-- Img or SVG icon -->
+              </div>
+              <span id="activeVehicleName" class="active-v-name">Cargando...</span>
+            </div>
+          </div>
+
+          <form id="tripForm">
+            <!-- Origen y Destino -->
+            <div class="form-group-route">
+              <div class="input-wrapper">
+                <label for="inputOrigin">
+                  <span class="marker-dot marker-origin"></span> Origen (Punto A)
+                </label>
+                <div class="input-with-icon">
+                  <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <input type="text" id="inputOrigin" placeholder="Ej: Providencia 1234, Santiago" value="Santiago, Chile" required autocomplete="off">
+                  <button type="button" id="btnClearOrigin" class="btn-input-clear" title="Limpiar">&times;</button>
+                </div>
+                <div id="suggestionsOrigin" class="suggestions-list"></div>
+              </div>
+
+              <div class="route-connector">
+                <button type="button" id="btnSwapLocations" class="btn-swap" title="Intercambiar origen y destino">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 16 4-4-4-4"/><path d="m17 8-4 4 4 4"/><path d="M3 12h18"/></svg>
+                </button>
+              </div>
+
+              <div class="input-wrapper">
+                <label for="inputDestination">
+                  <span class="marker-dot marker-destination"></span> Destino (Punto B)
+                </label>
+                <div class="input-with-icon">
+                  <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <input type="text" id="inputDestination" placeholder="Ej: Arlegui 500, Viña del Mar" value="Viña del Mar, Chile" required autocomplete="off">
+                  <button type="button" id="btnClearDestination" class="btn-input-clear" title="Limpiar">&times;</button>
+                </div>
+                <div id="suggestionsDestination" class="suggestions-list"></div>
+              </div>
+            </div>
+
+            <!-- Selección de Vehículo & Rendimiento Editable -->
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label for="selectVehicle">Vehículo seleccionado</label>
+                <div class="select-wrapper">
+                  <select id="selectVehicle"></select>
+                </div>
+              </div>
+
+              <div class="form-group flex-1">
+                <label for="inputEfficiency">Rendimiento</label>
+                <div class="input-unit-group">
+                  <input type="number" id="inputEfficiency" step="0.1" min="1" max="100" value="12.5" required>
+                  <select id="selectUnit" class="unit-selector">
+                    <option value="kml">km/L</option>
+                    <option value="l100">L/100km</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Combustible & Precio CNE -->
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="selectFuelType">Tipo de Combustible</label>
+                <select id="selectFuelType">
+                  <option value="93">Gasolina 93 Octanos</option>
+                  <option value="95" selected>Gasolina 95 Octanos</option>
+                  <option value="97">Gasolina 97 Octanos</option>
+                  <option value="diesel">Diésel</option>
+                </select>
+              </div>
+
+              <div class="form-group flex-1">
+                <div class="label-with-action">
+                  <label for="inputFuelPrice">Precio ($/Litro)</label>
+                  <button type="button" id="btnToggleManualPrice" class="btn-link">Manual</button>
+                </div>
+                <div class="input-with-symbol">
+                  <span class="currency-symbol">$</span>
+                  <input type="number" id="inputFuelPrice" step="1" min="100" max="5000" value="1320" required>
+                  <span class="currency-unit">CLP</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="price-source-info">
+              <span id="fuelPriceSourceBadge" class="price-badge badge-cne">CNE Chile API</span>
+              <span id="fuelPriceTimestamp" class="price-timestamp">Actualizado en tiempo real</span>
+            </div>
+
+            <!-- Opciones avanzadas de Viaje -->
+            <div class="accordion">
+              <button type="button" id="btnToggleAdvanced" class="accordion-header">
+                <span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                  Opciones avanzadas (Ida y Vuelta, Pasajeros)
+                </span>
+                <svg id="accordionChevron" class="chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+
+              <div id="advancedOptionsBody" class="accordion-body hidden">
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="checkboxRoundTrip">
+                      <span class="checkbox-custom"></span>
+                      <span>Trayecto Ida y Vuelta (x2)</span>
+                    </label>
+                  </div>
+
+                  <div class="form-group flex-1">
+                    <label for="inputPassengers">Pasajeros (Dividir gasto)</label>
+                    <input type="number" id="inputPassengers" min="1" max="10" value="1">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit Button EXPLICIT -->
+            <button type="button" id="btnCalculate" class="btn btn-primary btn-block btn-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m10 15 5-3-5-3v6Z"/></svg>
+              <span>Calcular Recorrido</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Preferencia de Ruta: Rápida vs Económica -->
+        <div id="routePreferenceCard" class="card route-preference-card hidden">
+          <div class="card-header">
+            <h3>Seleccionar Opción de Ruta</h3>
+          </div>
+          <div class="route-options-grid">
+            <div id="cardRouteFastest" class="route-option-card active">
+              <div class="route-option-header">
+                <span class="badge tag-blue">⚡ Más Rápida</span>
+                <span class="route-option-time" id="optFastestTime">0 min</span>
+              </div>
+              <div class="route-option-cost" id="optFastestCost">$0</div>
+              <div class="route-option-details" id="optFastestSub">Bencina + Peajes</div>
+            </div>
+
+            <div id="cardRouteCheapest" class="route-option-card">
+              <div class="route-option-header">
+                <span class="badge badge-pulse">💰 Más Económica</span>
+                <span class="route-option-time" id="optCheapestTime">0 min</span>
+              </div>
+              <div class="route-option-cost" id="optCheapestCost">$0</div>
+              <div class="route-option-details" id="optCheapestSub">Menor costo total</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Result Card -->
+        <div id="resultCard" class="card result-card">
+          <div class="card-header">
+            <h3>Desglose del Recorrido</h3>
+            <span id="tripTypeTag" class="tag tag-blue">Solo ida</span>
+          </div>
+
+          <!-- Highlight Total -->
+          <div class="total-hero">
+            <div class="total-label">Costo Total Estimado</div>
+            <div class="total-amount" id="resTotalCost">$0 CLP</div>
+            <div id="passengerCostRow" class="passenger-cost hidden">
+              <span>Costo por pasajero (<strong id="resPassengerCount">1</strong> pnas):</span>
+              <strong id="resPassengerCost" class="highlight-text">$0 CLP</strong>
+            </div>
+          </div>
+
+          <!-- Grid Stats -->
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              </div>
+              <div class="stat-data">
+                <span class="stat-value" id="resDistance">0 km</span>
+                <span class="stat-title">Distancia Real</span>
+              </div>
+            </div>
+
+            <div class="stat-box">
+              <div class="stat-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="m17 5-5-3-5 3"/><path d="m17 19-5 3-5-3"/></svg>
+              </div>
+              <div class="stat-data">
+                <span class="stat-value" id="resDuration">0 min</span>
+                <span class="stat-title">Tiempo Est.</span>
+              </div>
+            </div>
+
+            <div class="stat-box">
+              <div class="stat-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22v-3a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3"/><path d="M18 10V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v6"/><path d="M12 17v-7"/></svg>
+              </div>
+              <div class="stat-data">
+                <span class="stat-value" id="resLiters">0.0 L</span>
+                <span class="stat-title">Combustible Est.</span>
+              </div>
+            </div>
+
+            <div class="stat-box">
+              <div class="stat-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div class="stat-data">
+                <span class="stat-value" id="resFuelCostOnly">$0</span>
+                <span class="stat-title">Gasto Bencina</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Desglose de Peajes Automático -->
+          <div class="tolls-section">
+            <div class="tolls-header">
+              <h4>Peajes y Pórticos TAG Detectados (<span id="detectedTollsCount">0</span>)</h4>
+              <span class="tolls-disclaimer">Tarifas de referencia</span>
+            </div>
+            <div id="tollsListContainer" class="tolls-list">
+              <p class="empty-tolls-text">No se detectaron plazas de peaje en esta ruta.</p>
+            </div>
+          </div>
+
+          <!-- Formula Detail List -->
+          <div class="formula-breakdown">
+            <h4>Fórmula aplicada:</h4>
+            <p class="formula-code">
+              (<span id="fDist">0</span> km ÷ <span id="fEff">0</span> km/L) × $<span id="fPrice">0</span>/L = <strong id="fResult">$0</strong>
+            </p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Panel: Interactive Map -->
+      <section class="panel panel-right">
+        <div class="map-card card">
+          <div id="map" class="map-container"></div>
+          <div id="mapOverlay" class="map-overlay">
+            <div class="spinner"></div>
+            <span>Calculando la mejor ruta...</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal para Gestionar Vehículos -->
+    <div id="vehicleModal" class="modal-backdrop hidden">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h3>Mis Vehículos Guardados</h3>
+          <button type="button" id="btnCloseVehicleModal" class="btn-close">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div id="vehicleList" class="vehicle-list">
+            <!-- Renderizado dinámicamente -->
+          </div>
+
+          <hr class="divider">
+
+          <form id="newVehicleForm" class="new-vehicle-form">
+            <h4>Agregar nuevo vehículo</h4>
+            
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label for="newVehicleName">Nombre / Modelo</label>
+                <input type="text" id="newVehicleName" placeholder="Ej: Mazda 3 2023" required>
+              </div>
+              <div class="form-group flex-1">
+                <label for="newVehicleFuel">Combustible</label>
+                <select id="newVehicleFuel">
+                  <option value="93">93 Octanos</option>
+                  <option value="95" selected>95 Octanos</option>
+                  <option value="97">97 Octanos</option>
+                  <option value="diesel">Diésel</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="newVehicleEff">Rendimiento</label>
+                <input type="number" id="newVehicleEff" step="0.1" min="1" max="100" placeholder="14.0" required>
+              </div>
+              <div class="form-group flex-1">
+                <label for="newVehicleUnit">Unidad</label>
+                <select id="newVehicleUnit">
+                  <option value="kml">km/L</option>
+                  <option value="l100">L/100km</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Upload Photo Field -->
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label for="newVehiclePhoto">Foto del vehículo (Opcional, máx 2MB)</label>
+              <div class="photo-upload-container">
+                <input type="file" id="newVehiclePhoto" accept="image/*" class="file-input">
+                <img id="newVehiclePhotoPreview" class="photo-preview-img hidden" alt="Vista previa">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-secondary btn-block">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Guardar Vehículo
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Scripts de la Aplicación -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
